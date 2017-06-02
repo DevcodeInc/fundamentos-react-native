@@ -23,7 +23,7 @@ fs = require('fs')
 // Configuracion, si deseas puedes editar esto
 const _CONFIG = {
   listen_ip: ip.address(),
-  listen_port: 3000,
+  listen_port: 8080,
   jwt_hash: "$%$DEVCODE$%$"
 }
 
