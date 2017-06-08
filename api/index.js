@@ -17,7 +17,8 @@ storage = multer.diskStorage({
 upload = multer({ storage: storage }),
 md5 = require('md5'),
 mime = require('mime'),
-fs = require('fs')
+fs = require('fs'),
+cors = require('cors')
 
 
 // Configuracion, si deseas puedes editar esto
@@ -71,23 +72,31 @@ function userExistsByEmail(email){
 
 // Esta funcion servira para verificar si existe el usuario o no
 function usersOnly(req,res,next){
-  if(!!req.body.token){
-    jwt.verify(req.body.token, _CONFIG.jwt_hash, function(err, decoded) {
-      if(err){
-        res.json({success:false,msj:"Hmm ... parece ser que no eres quien dices ser!"})
-      }else{
-        req.user = decoded
-        next()
-      }
-    });
-
+  var auth = req.get("Authorization")
+  if(!!auth){
+    auth = auth.split(" ")
+    if(auth.length === 2 && auth[0].toLowerCase() === "bearer"){
+      jwt.verify(auth[1], _CONFIG.jwt_hash, function(err, decoded) {
+        if(err){
+          res.json({success:false,msj:"Hmm ... parece ser que no eres quien dices ser!"})
+        }else{
+          req.user = decoded
+          next()
+        }
+      });
+    }else{
+      res.json({success:false,msj:"La cabecera de autenticación no es válida."})
+    }
   }else{
     res.json({success:false,msj:"Debes ser un usuario!"})
   }
 }
 
+
+app.use(cors())
+
 app.get('/', (req, res) => {
-  res.json({success:true,msjs: _msgs})
+  res.json({success:true,msjs: _msgs, users: _users})
 });
 
 
@@ -105,10 +114,16 @@ app.post('/user', upload.single('avatar'), (req,res) => {
   if( !userExistsByEmail(req.body.email) ){
     let user = addUser(req.body.name,req.body.email,req.file)
     let token = jwt.sign({email: user.email}, _CONFIG.jwt_hash)
+    console.log((("["+moment().format("LLL")+"]").bold + " - Nuevo usuario "+user.email).blue)
     res.json({success: true, token})
   }else{
     res.json({success:false, msj: "Ya hay un usuario activo con ese correo"})
   }
+})
+
+app.get('/user',usersOnly, (req,res) => {
+  console.log(req.user)
+  res.send("")
 })
 
 app.get('/avatar/:path', (req,res) => {
@@ -116,7 +131,7 @@ app.get('/avatar/:path', (req,res) => {
   if(fs.existsSync(t)){
     res.sendFile(t);
   }else{
-    res.status(404).send("404")
+    res.status(404).send("404");
   }
 })
 
