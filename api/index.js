@@ -52,7 +52,7 @@ function addUser(name,email,avatar){
   if(!avatar){
     avatar = "https://www.gravatar.com/avatar/" + md5( email.trim().toLowerCase() ) + "?s=200&d=retro"
   }else{
-    avatar = 'http://'+_CONFIG.listen_ip+":"+_CONFIG.listen_port+"/avatar"+avatar.path
+    avatar = 'http://'+_CONFIG.listen_ip+":"+_CONFIG.listen_port+"/avatar/"+avatar.filename
   }
 
   var new_user = {
@@ -66,8 +66,12 @@ function addUser(name,email,avatar){
 
 
 // Funcion para verificar si existe un usuario por su email
+function getUserByEmail(email){
+  return _.find(_users, (o) => { return o.email === email })
+}
+// Funcion para verificar si existe un usuario por su email
 function userExistsByEmail(email){
-  return !!_.find(_users, (o) => { return o.email === email })
+  return !!getUserByEmail(email)
 }
 
 // Esta funcion servira para verificar si existe el usuario o no
@@ -92,23 +96,17 @@ function usersOnly(req,res,next){
   }
 }
 
-
 app.use(cors())
 
 app.get('/', (req, res) => {
   res.json({success:true,msjs: _msgs, users: _users})
 });
 
-
-
 app.post('/msg', usersOnly, (req, res) => {
   let new_msj = addMsg(req.user.email,req.body.type,req.body.content)
   console.log((("["+moment().format("LLL")+"]").bold + " - Mensaje de "+req.user.name).green)
   res.json({success:true,msj: new_msj})
 });
-
-
-
 
 app.post('/user', upload.single('avatar'), (req,res) => {
   if( !userExistsByEmail(req.body.email) ){
@@ -122,8 +120,7 @@ app.post('/user', upload.single('avatar'), (req,res) => {
 })
 
 app.get('/user',usersOnly, (req,res) => {
-  console.log(req.user)
-  res.send("")
+  res.json({success:true,data: getUserByEmail(req.user.email)})
 })
 
 app.get('/avatar/:path', (req,res) => {
@@ -134,9 +131,6 @@ app.get('/avatar/:path', (req,res) => {
     res.status(404).send("404");
   }
 })
-
-
-// TODO: eliminar usuario cuando su socket se desconecte y emitir este evento por socket a todos pes
 
 app.listen(_CONFIG.listen_port,_CONFIG.listen_ip, () => {
   console.log();
