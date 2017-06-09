@@ -1,5 +1,7 @@
 const express = require('express'),
 app = express(),
+http = require('http').Server(app),
+io = require('socket.io')(http),
 ip = require('ip'),
 colors = require('colors'),
 _ = require('lodash'),
@@ -132,7 +134,11 @@ app.get('/avatar/:path', (req,res) => {
   }
 })
 
-app.listen(_CONFIG.listen_port,_CONFIG.listen_ip, () => {
+io.on('connection', function(socket){
+  console.log('a user connected');
+});
+
+http.listen(_CONFIG.listen_port,_CONFIG.listen_ip, () => {
   console.log();
   console.log('¡Ojo! El api no esta pensada para persistir los mensajes'.bgMagenta.white)
   console.log('estos serán eliminados cuando apagues el servidor!'.bgMagenta.white)
